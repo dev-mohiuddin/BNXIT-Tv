@@ -1,11 +1,9 @@
-name: Build Android APK
+name: Build & Auto Release Android APK
 
 on:
   push:
-    branches:
-      - main
     tags:
-      - 'v*'
+      - "v*"
   workflow_dispatch:
 
 permissions:
@@ -13,95 +11,82 @@ permissions:
 
 jobs:
   build:
-    name: Build & Package APK
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      - name: Set up JDK 17
+      # -----------------------------
+      # Setup Java
+      # -----------------------------
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: temurin
+          java-version: 17
+          cache: gradle
 
-      - name: Grant Execute Permission to Gradlew
+      - name: Grant permission
         run: chmod +x gradlew
 
-      - name: Decode Keystore
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-        if: ${{ env.KEYSTORE_BASE64 != '' }}
+      # -----------------------------
+      # AUTO GENERATE KEYSTORE
+      # -----------------------------
+      - name: Generate Keystore Automatically
         run: |
-          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > app/keystore.jks
+          keytool -genkeypair -v \
+            -keystore keystore.jks \
+            -storepass android123 \
+            -alias bnxit \
+            -keypass android123 \
+            -keyalg RSA \
+            -keysize 2048 \
+            -validity 10000 \
+            -dname "CN=BNXIT, OU=Dev, O=BNXIT, L=Dhaka, S=Dhaka, C=BD"
 
-      - name: Build Debug & Release APKs
+      # -----------------------------
+      # Build Release APK (SIGNED)
+      # -----------------------------
+      - name: Build Release APK
+        run: ./gradlew clean assembleRelease
         env:
-          KEYSTORE_FILE_PATH: "keystore.jks"
-          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
-          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
-          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
-        run: ./gradlew assembleDebug assembleRelease
+          KEYSTORE_PATH: keystore.jks
+          KEYSTORE_PASSWORD: android123
+          KEY_ALIAS: bnxit
+          KEY_PASSWORD: android123
 
-      - name: Locate and Standardize Build Outputs
+      # -----------------------------
+      # Locate APK safely
+      # -----------------------------
+      - name: Collect APK
         run: |
-          mkdir -p release-assets
-          
-          # Copy ready-to-run debug APK
-          if [ -f app/build/outputs/apk/debug/app-debug.apk ]; then
-            cp app/build/outputs/apk/debug/app-debug.apk release-assets/BNXIT-Tv-debug.apk
-            echo "Copied debug APK successfully."
-          fi
-          
-          # Locate and copy release APK (signed or unsigned fallback)
-          if [ -f app/build/outputs/apk/release/app-release.apk ]; then
-            cp app/build/outputs/apk/release/app-release.apk release-assets/BNXIT-Tv-release.apk
-            echo "Copied signed release APK."
-          elif [ -f app/build/outputs/apk/release/app-release-unsigned.apk ]; then
-            cp app/build/outputs/apk/release/app-release-unsigned.apk release-assets/BNXIT-Tv-release.apk
-            echo "Copied unsigned release APK fallback."
-          else
-            echo "No standard release outputs found. Searching directory..."
-            find app/build/outputs/apk/ -name "*.apk" -exec cp {} release-assets/ \;
-          fi
-          
-          echo "Release Assets Directory:"
-          ls -la release-assets
+          mkdir -p release
+          find app/build/outputs/apk -name "*.apk" -exec cp {} release/app-release.apk \;
 
-      - name: Upload Debug APK Artifact
+      # -----------------------------
+      # Upload artifact (optional)
+      # -----------------------------
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BNXIT-Tv-debug-apk
-          path: release-assets/BNXIT-Tv-debug.apk
+          name: apk
+          path: release/
 
-      - name: Upload Release APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: BNXIT-Tv-release-apk
-          path: release-assets/BNXIT-Tv-release.apk
-
+      # -----------------------------
+      # Create GitHub Release
+      # -----------------------------
       - name: Create GitHub Release
-        if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: release-assets/*.apk
           name: Release ${{ github.ref_name }}
+          files: release/app-release.apk
           body: |
-            ## BNXIT TV IPTV Player - Release ${{ github.ref_name }}
-            
-            Choose the appropriate APK file to download:
-            
-            - **`BNXIT-Tv-release.apk`**: **[RECOMMENDED]** Production optimized release build. If signing credentials were provided, this is a fully signed production APK.
-            - **`BNXIT-Tv-debug.apk`**: Pre-signed debugging build, ready to install and watch immediately on your Smart TV or Projector.
-            
-            ### TV/Projector Installation Guide:
-            1. Download your preferred APK from the assets list below.
-            2. Copy the file to a USB Flash Drive.
-            3. Plug the USB drive into your Android TV or Projector.
-            4. Open a File Manager on your TV, find the APK, and install it.
-          draft: false
-          prerelease: false
+            🚀 Auto-generated Android APK Release
+
+            ✔ Signed automatically in CI  
+            ✔ No manual keystore required  
+            ✔ Ready for installation (TV / Android Box)
+
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

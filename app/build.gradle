@@ -1,67 +1,29 @@
-plugins {
-    alias(libs.plugins.android.application)
+signingConfigs {
+    release {
+        def ksPath = System.getenv("KEYSTORE_PATH")
+
+        if (ksPath != null) {
+            storeFile file(ksPath)
+            storePassword System.getenv("KEYSTORE_PASSWORD")
+            keyAlias System.getenv("KEY_ALIAS")
+            keyPassword System.getenv("KEY_PASSWORD")
+        }
+    }
 }
 
-android {
-    namespace 'com.bnxit.bnxittv'
-    compileSdk 36
+buildTypes {
+    release {
+        minifyEnabled true
+        shrinkResources true
+        proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 
-    defaultConfig {
-        applicationId "com.bnxit.bnxittv"
-        minSdk 24
-        targetSdk 36
-        versionCode 1
-        versionName "1.0"
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
-        vectorDrawables.useSupportLibrary = true
-    }
-
-    signingConfigs {
-        release {
-            storeFile file(System.getenv("KEYSTORE_FILE_PATH") ?: "keystore.jks")
-            storePassword System.getenv("KEYSTORE_PASSWORD") ?: ""
-            keyAlias System.getenv("KEY_ALIAS") ?: ""
-            keyPassword System.getenv("KEY_PASSWORD") ?: ""
+        def ksPath = System.getenv("KEYSTORE_PATH")
+        if (ksPath != null) {
+            signingConfig signingConfigs.release
         }
     }
 
-    buildTypes {
-        release {
-            minifyEnabled true
-            shrinkResources true
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            if (System.getenv("KEYSTORE_PASSWORD") != null) {
-                signingConfig signingConfigs.release
-            }
-        }
-        debug {
-            minifyEnabled false
-        }
+    debug {
+        minifyEnabled false
     }
-
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
-
-}
-
-dependencies {
-    implementation libs.appcompat
-    implementation libs.material
-    implementation libs.recyclerview
-    implementation libs.leanback
-    implementation libs.constraintlayout
-
-    // Media3 ExoPlayer
-    implementation libs.media3.exoplayer
-    implementation libs.media3.exoplayer.hls
-    implementation libs.media3.exoplayer.dash
-    implementation libs.media3.ui
-
-    testImplementation libs.junit
-    androidTestImplementation libs.ext.junit
-    androidTestImplementation libs.espresso.core
 }
