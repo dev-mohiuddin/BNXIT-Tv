@@ -2,10 +2,8 @@ name: Build Android APK
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*'
+    branches: [main]
+    tags: ['v*']
   workflow_dispatch:
 
 permissions:
@@ -13,7 +11,6 @@ permissions:
 
 jobs:
   build:
-    name: Build & Package APK
     runs-on: ubuntu-latest
 
     steps:
@@ -23,56 +20,31 @@ jobs:
       - name: Set up JDK 17
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
-          cache: 'gradle'
+          distribution: temurin
+          java-version: 17
+          cache: gradle
 
-      - name: Grant Execute Permission to Gradlew
+      - name: Grant Execute Permission
         run: chmod +x gradlew
 
-      - name: Build Debug & Unsigned Release APKs
-        run: ./gradlew assembleDebug assembleRelease
+      - name: Build APK (Debug only for safety)
+        run: ./gradlew assembleDebug
 
-      - name: Rename and Prepare Release Assets
+      - name: Prepare Release Folder
         run: |
           mkdir -p release-assets
           cp app/build/outputs/apk/debug/app-debug.apk release-assets/BNXIT-Tv-debug.apk
-          cp app/build/outputs/apk/release/app-release-unsigned.apk release-assets/BNXIT-Tv-release-unsigned.apk
 
       - name: Upload Debug APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: BNXIT-Tv-debug-apk
+          name: BNXIT-debug
           path: release-assets/BNXIT-Tv-debug.apk
-
-      - name: Upload Release APK Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: BNXIT-Tv-release-unsigned-apk
-          path: release-assets/BNXIT-Tv-release-unsigned.apk
 
       - name: Create GitHub Release
         if: startsWith(github.ref, 'refs/tags/v')
         uses: softprops/action-gh-release@v2
         with:
-          files: |
-            release-assets/BNXIT-Tv-debug.apk
-            release-assets/BNXIT-Tv-release-unsigned.apk
-          name: Release ${{ github.ref_name }}
-          body: |
-            ## BNXIT TV IPTV Player
-            
-            Choose the appropriate APK file to download:
-            
-            - **`BNXIT-Tv-debug.apk`**: **[RECOMMENDED]** Pre-signed with a debug key. Ready to install and watch immediately on your Smart TV or Projector.
-            - **`BNXIT-Tv-release-unsigned.apk`**: Production optimized release build. Requires signing before installation.
-            
-            ### Installation Instructions:
-            1. Download the recommended `BNXIT-Tv-debug.apk`.
-            2. Copy the APK to a USB Flash Drive.
-            3. Plug the USB drive into your Android TV or Projector.
-            4. Open a File Manager on your TV and install the APK.
-          draft: false
-          prerelease: false
+          files: release-assets/BNXIT-Tv-debug.apk
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
