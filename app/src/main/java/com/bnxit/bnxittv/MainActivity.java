@@ -203,20 +203,33 @@ public class MainActivity extends AppCompatActivity implements
                 // Load channels for current category
                 updateChannelList(currentCategory);
 
-                // Auto-play last channel (only on first load)
+                // Auto-play last channel (only on first load) or first channel fallback
                 if (!playerManager.isPlaying()) {
                     String lastUrl = prefManager.getLastChannelUrl();
+                    ChannelModel targetChannel = null;
                     if (lastUrl != null) {
-                        ChannelModel lastChannel = jsonLoader.findByUrl(lastUrl);
-                        if (lastChannel != null) {
-                            playChannel(lastChannel);
-
-                            int chPos = channelAdapter.findPositionByUrl(lastUrl);
-                            if (chPos >= 0) {
-                                channelAdapter.setSelectedPosition(chPos);
-                                rvChannels.scrollToPosition(chPos);
-                            }
+                        targetChannel = jsonLoader.findByUrl(lastUrl);
+                    }
+                    
+                    // Fallback to the first channel in the current category if no last channel is found
+                    if (targetChannel == null) {
+                        List<ChannelModel> currentChannels = jsonLoader.getChannelsForCategory(currentCategory);
+                        if (currentChannels != null && !currentChannels.isEmpty()) {
+                            targetChannel = currentChannels.get(0);
                         }
+                    }
+                    
+                    if (targetChannel != null) {
+                        playChannel(targetChannel);
+
+                        int chPos = channelAdapter.findPositionByUrl(targetChannel.url);
+                        if (chPos >= 0) {
+                            channelAdapter.setSelectedPosition(chPos);
+                            rvChannels.scrollToPosition(chPos);
+                        }
+                    } else {
+                        // Safe fallback if no channels are loaded
+                        placeholderOverlay.setVisibility(View.GONE);
                     }
                 }
 
