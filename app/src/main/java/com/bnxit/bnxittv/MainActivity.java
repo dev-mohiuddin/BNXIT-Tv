@@ -468,6 +468,7 @@ public class MainActivity extends AppCompatActivity implements
 
     @Override
     public void onBackPressed() {
+        // 1. If Developer overlay is visible -> hide it (no popup)
         if (isDeveloperOverlayVisible) {
             if (developerInfoOverlay != null) {
                 developerInfoOverlay.setVisibility(View.GONE);
@@ -480,20 +481,23 @@ public class MainActivity extends AppCompatActivity implements
             return;
         }
 
-        if (!isPanelVisible) {
-            if (isControlsHudVisible()) {
-                hideControlsHud();
+        // 2. If controls HUD menu is visible -> hide it (no popup)
+        if (isControlsHudVisible()) {
+            hideControlsHud();
+            return;
+        }
+
+        // 3. If side panels (categories/channels) are visible -> handle or hide them (no popup)
+        if (isPanelVisible) {
+            if (rvChannels.hasFocus()) {
+                rvCategories.requestFocus();
             } else {
-                showControlsHud();
+                togglePanels(false); // Hide panels and go to fullscreen player
             }
             return;
         }
 
-        if (rvChannels.hasFocus()) {
-            rvCategories.requestFocus();
-            return;
-        }
-
+        // 4. If nothing else is visible (pure fullscreen video player) -> show exit popup
         showExitDialog();
     }
 

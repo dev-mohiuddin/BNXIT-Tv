@@ -192,10 +192,8 @@ public class PlayerManager {
         if (callback != null) callback.onBuffering();
 
         try {
-            player.stop();
-
             MediaSource mediaSource = buildMediaSource(channel);
-            player.setMediaSource(mediaSource);
+            player.setMediaSource(mediaSource, true);
             player.prepare();
             player.setPlayWhenReady(true);
 

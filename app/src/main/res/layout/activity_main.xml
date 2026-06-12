@@ -254,19 +254,31 @@
     <LinearLayout
         android:id="@+id/loading_overlay"
         android:layout_width="260dp"
-        android:layout_height="150dp"
+        android:layout_height="160dp"
         android:layout_gravity="center"
         android:orientation="vertical"
         android:gravity="center"
-        android:background="@drawable/bg_panel"
-        android:elevation="12dp"
+        android:background="@drawable/bg_loading_card"
+        android:elevation="16dp"
+        android:padding="20dp"
         android:visibility="gone">
 
         <ProgressBar
             android:id="@+id/progress_bar"
-            android:layout_width="48dp"
-            android:layout_height="48dp"
-            android:indeterminateTint="@color/loading_blue" />
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:indeterminateTint="@color/focus_blue" />
+
+        <TextView
+            android:id="@+id/tv_loading_title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="BUFFERING"
+            android:textColor="@color/focus_blue"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:letterSpacing="0.15"
+            android:layout_marginTop="16dp" />
 
         <TextView
             android:id="@+id/tv_loading_text"
@@ -275,7 +287,8 @@
             android:text="@string/connecting"
             android:textColor="@color/text_secondary"
             android:textSize="14sp"
-            android:layout_marginTop="16dp" />
+            android:layout_marginTop="4dp"
+            android:gravity="center" />
 
     </LinearLayout>
 
