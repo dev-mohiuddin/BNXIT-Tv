@@ -9,4 +9,23 @@
     <string name="press_ok_to_play">Press OK to play</string>
     <string name="connecting">Connecting…</string>
     <string name="buffering">Buffering…</string>
+
+    <!-- Developer Info -->
+    <string name="dev_name">Mohiuddin</string>
+    <string name="dev_role">Full-Stack Developer</string>
+    <string name="dev_email">mohiuddin.mern.dev@gmail.com</string>
+    <string name="dev_location">📍 Bangladesh</string>
+    <string name="dev_facebook_url">https://web.facebook.com/mohiuddin.mern.dev/</string>
+    <string name="dev_facebook_label">Facebook</string>
+    <string name="dev_about_title">About Developer</string>
+    <string name="dev_about_body">Passionate full-stack developer crafting modern, fast and beautiful IPTV experiences. I love building sleek UIs, clean backend systems and shipping delightful products for Android TV and the web.</string>
+    <string name="dev_skills_title">Core Skills</string>
+    <string name="dev_skills_body">• Android TV &amp; Mobile (Java / Kotlin)\n• React, Next.js, Tailwind &amp; TypeScript\n• Node.js, Express, MongoDB, Redis\n• MERN Stack • REST &amp; GraphQL APIs\n• Media Players (ExoPlayer / Media3) • UI/UX</string>
+    <string name="dev_focus_title">Currently Building</string>
+    <string name="dev_focus_body">• BNXIT Tv — Modern Android TV IPTV app\n• Full-stack MERN web products\n• Open-source UI components &amp; design systems</string>
+    <string name="dev_quote">“Code is like humor. When you have to explain it, it’s bad.” — Mohiuddin</string>
+    <string name="dev_stat_projects">Projects</string>
+    <string name="dev_stat_experience">Experience</string>
+    <string name="dev_stat_passion">Passion</string>
+    <string name="dev_visit_facebook">VISIT FACEBOOK</string>
 </resources>

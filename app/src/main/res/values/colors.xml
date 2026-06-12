@@ -46,6 +46,17 @@
     <!-- Divider -->
     <color name="divider">#1AFFFFFF</color>
 
+    <!-- Facebook brand color -->
+    <color name="facebook_blue">#FF1877F2</color>
+    <color name="facebook_blue_dark">#FF0E5FC4</color>
+
+    <!-- Dev card gradient accents -->
+    <color name="dev_accent_cyan">#FF00E5FF</color>
+    <color name="dev_accent_purple">#FF9B59FF</color>
+    <color name="dev_accent_pink">#FFFF4DA6</color>
+    <color name="dev_card_bg">#FF10101A</color>
+    <color name="dev_stat_bg">#15FFFFFF</color>
+
     <!-- Legacy colors kept for compatibility -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>

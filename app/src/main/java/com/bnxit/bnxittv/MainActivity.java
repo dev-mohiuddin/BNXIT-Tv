@@ -1,5 +1,7 @@
 package com.bnxit.bnxittv;
 
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -63,6 +65,7 @@ public class MainActivity extends AppCompatActivity implements
     private TextView btnDeveloper;
     private View developerInfoOverlay;
     private TextView btnCloseDeveloper;
+    private TextView btnDevFacebook;
     private ScrollView bioScrollView;
     private boolean isDeveloperOverlayVisible = false;
 
@@ -133,6 +136,7 @@ public class MainActivity extends AppCompatActivity implements
         btnMenu = findViewById(R.id.btn_menu);
         btnDeveloper = findViewById(R.id.btn_developer);
         developerInfoOverlay = findViewById(R.id.developer_info_overlay);
+        btnDevFacebook = findViewById(R.id.btn_dev_facebook);
         btnCloseDeveloper = findViewById(R.id.btn_close_developer);
         bioScrollView = findViewById(R.id.bio_scrollview);
     }
@@ -642,6 +646,9 @@ public class MainActivity extends AppCompatActivity implements
         if (btnCloseDeveloper != null) {
             btnCloseDeveloper.setOnFocusChangeListener(focusListener);
         }
+        if (btnDevFacebook != null) {
+            btnDevFacebook.setOnFocusChangeListener(focusListener);
+        }
         if (bioScrollView != null) {
             bioScrollView.setOnFocusChangeListener((v, hasFocus) -> resetAutoHideTimer());
         }
@@ -687,6 +694,42 @@ public class MainActivity extends AppCompatActivity implements
                     }
                 }
             });
+        }
+
+        if (btnDevFacebook != null) {
+            btnDevFacebook.setOnClickListener(v -> {
+                openFacebookProfile();
+                resetAutoHideTimer();
+            });
+        }
+
+        // Clicking the dimmed backdrop closes the developer overlay
+        if (developerInfoOverlay != null) {
+            developerInfoOverlay.setOnClickListener(v -> {
+                if (developerInfoOverlay != null) {
+                    developerInfoOverlay.setVisibility(View.GONE);
+                    isDeveloperOverlayVisible = false;
+                    showControlsHud();
+                    if (btnDeveloper != null) {
+                        btnDeveloper.requestFocus();
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Opens the developer's Facebook profile in a browser or the Facebook app.
+     */
+    private void openFacebookProfile() {
+        String url = getString(R.string.dev_facebook_url);
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            startActivity(intent);
+        } catch (Exception e) {
+            Log.e(TAG, "Failed to open Facebook URL: " + url, e);
+            Toast.makeText(this, "Unable to open Facebook", Toast.LENGTH_SHORT).show();
         }
     }
 
