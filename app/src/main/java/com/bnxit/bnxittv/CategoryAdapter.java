@@ -40,10 +40,10 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
         int oldPos = this.selectedPosition;
         this.selectedPosition = position;
         if (oldPos >= 0 && oldPos < categories.size()) {
-            notifyItemChanged(oldPos);
+            notifyItemChanged(oldPos, "selection_changed");
         }
         if (position >= 0 && position < categories.size()) {
-            notifyItemChanged(position);
+            notifyItemChanged(position, "selection_changed");
         }
     }
 
@@ -60,6 +60,19 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
     }
 
     @Override
+    public void onBindViewHolder(@NonNull CategoryViewHolder holder, int position, @NonNull List<Object> payloads) {
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position);
+        } else {
+            if (holder.tvName.hasFocus() || position == selectedPosition) {
+                holder.tvName.setTextColor(0xFFFFFFFF); // White when focused or selected
+            } else {
+                holder.tvName.setTextColor(0xFFC4C4D0); // Dim when normal
+            }
+        }
+    }
+
+    @Override
     public void onBindViewHolder(@NonNull CategoryViewHolder holder, int position) {
         String category = categories.get(position);
 
@@ -67,8 +80,8 @@ public class CategoryAdapter extends RecyclerView.Adapter<CategoryAdapter.Catego
         String displayText = getCategoryEmoji(category) + " " + category;
         holder.tvName.setText(displayText);
 
-        // Selection state
-        holder.tvName.setSelected(position == selectedPosition);
+        // Selection state manually handled via text color to prevent focus conflicts
+        boolean isSelected = (position == selectedPosition);
 
         // Text color based on selection and focus
         if (holder.tvName.hasFocus() || position == selectedPosition) {

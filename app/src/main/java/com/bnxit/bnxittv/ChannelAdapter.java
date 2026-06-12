@@ -46,18 +46,28 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
     }
 
     public void setCurrentPlayingUrl(String url) {
+        String oldUrl = this.currentPlayingUrl;
         this.currentPlayingUrl = url;
-        notifyDataSetChanged();
+
+        if (oldUrl != null) {
+            int oldPos = findPositionByUrl(oldUrl);
+            if (oldPos >= 0) notifyItemChanged(oldPos, "playing_changed");
+        }
+
+        if (url != null) {
+            int newPos = findPositionByUrl(url);
+            if (newPos >= 0) notifyItemChanged(newPos, "playing_changed");
+        }
     }
 
     public void setSelectedPosition(int position) {
         int oldPos = this.selectedPosition;
         this.selectedPosition = position;
         if (oldPos >= 0 && oldPos < channels.size()) {
-            notifyItemChanged(oldPos);
+            notifyItemChanged(oldPos, "selection_changed");
         }
         if (position >= 0 && position < channels.size()) {
-            notifyItemChanged(position);
+            notifyItemChanged(position, "selection_changed");
         }
     }
 
@@ -67,6 +77,24 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
         View view = LayoutInflater.from(parent.getContext())
                 .inflate(R.layout.item_channel, parent, false);
         return new ChannelViewHolder(view);
+    }
+
+    @Override
+    public void onBindViewHolder(@NonNull ChannelViewHolder holder, int position, @NonNull List<Object> payloads) {
+        if (payloads.isEmpty()) {
+            onBindViewHolder(holder, position);
+        } else {
+            ChannelModel channel = channels.get(position);
+            boolean isCurrentlyPlaying = currentPlayingUrl != null && currentPlayingUrl.equals(channel.url);
+            holder.tvLiveDot.setVisibility(isCurrentlyPlaying ? View.VISIBLE : View.GONE);
+
+            boolean isSelected = (position == selectedPosition);
+            if (holder.itemView.hasFocus() || isSelected || isCurrentlyPlaying) {
+                holder.tvName.setTextColor(0xFFFFFFFF);
+            } else {
+                holder.tvName.setTextColor(0xFFC4C4D0);
+            }
+        }
     }
 
     @Override
@@ -89,8 +117,8 @@ public class ChannelAdapter extends RecyclerView.Adapter<ChannelAdapter.ChannelV
         boolean isCurrentlyPlaying = currentPlayingUrl != null && currentPlayingUrl.equals(channel.url);
         holder.tvLiveDot.setVisibility(isCurrentlyPlaying ? View.VISIBLE : View.GONE);
 
-        // Selection state
-        holder.itemView.setSelected(position == selectedPosition || isCurrentlyPlaying);
+        // Selection state logic manually handled via text color to avoid VerticalGridView focus conflicts
+        boolean isSelected = (position == selectedPosition);
 
         // Text color based on selection/focus/playing states
         if (holder.itemView.hasFocus() || position == selectedPosition || isCurrentlyPlaying) {

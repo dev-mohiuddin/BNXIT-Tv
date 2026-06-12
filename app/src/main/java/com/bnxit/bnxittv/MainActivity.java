@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity implements
 
     private static final String TAG = "MainActivity";
     private static final long NOW_PLAYING_HIDE_DELAY = 4000;
-    private static final long AUTO_HIDE_DELAY_MS = 5000;
+    private static final long AUTO_HIDE_DELAY_MS = 10000;
 
     // UI Components
     private RecyclerView rvCategories;
@@ -52,12 +52,11 @@ public class MainActivity extends AppCompatActivity implements
     private View loadingOverlay;
     private View errorOverlay;
     private View placeholderOverlay;
-    private TextView tvLoadingText;
     private View panelsContainer;
+    private View startupLoader;
 
     // Controls HUD Components
     private View controlsHud;
-    private TextView btnPlayPause;
     private TextView btnQuality;
     private TextView btnAspect;
     private TextView btnMenu;
@@ -125,12 +124,10 @@ public class MainActivity extends AppCompatActivity implements
         nowPlayingBar = findViewById(R.id.now_playing_bar);
         loadingOverlay = findViewById(R.id.loading_overlay);
         errorOverlay = findViewById(R.id.error_overlay);
-        placeholderOverlay = findViewById(R.id.placeholder_overlay);
-        tvLoadingText = findViewById(R.id.tv_loading_text);
         panelsContainer = findViewById(R.id.panels_container);
+        startupLoader = findViewById(R.id.startup_loader);
 
         controlsHud = findViewById(R.id.player_controls_hud);
-        btnPlayPause = findViewById(R.id.btn_play_pause);
         btnQuality = findViewById(R.id.btn_quality);
         btnAspect = findViewById(R.id.btn_aspect);
         btnMenu = findViewById(R.id.btn_menu);
@@ -145,8 +142,6 @@ public class MainActivity extends AppCompatActivity implements
         categoryAdapter = new CategoryAdapter();
         categoryAdapter.setOnCategoryClickListener(this);
 
-        LinearLayoutManager catLayoutManager = new LinearLayoutManager(this);
-        rvCategories.setLayoutManager(catLayoutManager);
         rvCategories.setAdapter(categoryAdapter);
         rvCategories.setHasFixedSize(true);
         rvCategories.setItemAnimator(null);
@@ -156,8 +151,6 @@ public class MainActivity extends AppCompatActivity implements
         channelAdapter = new ChannelAdapter();
         channelAdapter.setOnChannelClickListener(this);
 
-        LinearLayoutManager chLayoutManager = new LinearLayoutManager(this);
-        rvChannels.setLayoutManager(chLayoutManager);
         rvChannels.setAdapter(channelAdapter);
         rvChannels.setHasFixedSize(true);
         rvChannels.setItemAnimator(null);
@@ -184,6 +177,9 @@ public class MainActivity extends AppCompatActivity implements
         jsonLoader.loadAsync(this, new JsonLoader.LoadCallback() {
             @Override
             public void onLoaded(int channelCount, int categoryCount) {
+                if (startupLoader != null) {
+                    startupLoader.setVisibility(View.GONE);
+                }
                 // This is called on main thread
                 Log.d(TAG, "Channels loaded: " + channelCount + ", categories: " + categoryCount);
 
@@ -227,9 +223,6 @@ public class MainActivity extends AppCompatActivity implements
                             channelAdapter.setSelectedPosition(chPos);
                             rvChannels.scrollToPosition(chPos);
                         }
-                    } else {
-                        // Safe fallback if no channels are loaded
-                        placeholderOverlay.setVisibility(View.GONE);
                     }
                 }
 
@@ -239,6 +232,9 @@ public class MainActivity extends AppCompatActivity implements
 
             @Override
             public void onError(String message) {
+                if (startupLoader != null) {
+                    startupLoader.setVisibility(View.GONE);
+                }
                 Log.e(TAG, "Channel load error: " + message);
                 tvChannelCount.setText("Failed to load channels");
                 Toast.makeText(MainActivity.this, "Failed to load channels", Toast.LENGTH_SHORT).show();
@@ -267,6 +263,10 @@ public class MainActivity extends AppCompatActivity implements
     @Override
     public void onCategoryClick(String category, int position) {
         updateChannelList(category);
+        
+        // Drill-down: hide categories, show channels
+        findViewById(R.id.category_panel).setVisibility(View.GONE);
+        findViewById(R.id.channel_panel).setVisibility(View.VISIBLE);
 
         uiHandler.postDelayed(() -> {
             if (rvChannels.getChildCount() > 0) {
@@ -274,6 +274,8 @@ public class MainActivity extends AppCompatActivity implements
                 if (firstChild != null) {
                     firstChild.requestFocus();
                 }
+            } else {
+                rvChannels.requestFocus();
             }
         }, 100);
     }
@@ -286,7 +288,6 @@ public class MainActivity extends AppCompatActivity implements
     private void playChannel(ChannelModel channel) {
         if (channel == null) return;
 
-        placeholderOverlay.setVisibility(View.GONE);
         showNowPlaying(channel.name);
         channelAdapter.setCurrentPlayingUrl(channel.url);
         prefManager.saveLastChannel(channel.url);
@@ -312,7 +313,6 @@ public class MainActivity extends AppCompatActivity implements
         runOnUiThread(() -> {
             loadingOverlay.setVisibility(View.VISIBLE);
             errorOverlay.setVisibility(View.GONE);
-            tvLoadingText.setText(R.string.buffering);
         });
     }
 
@@ -321,7 +321,6 @@ public class MainActivity extends AppCompatActivity implements
         runOnUiThread(() -> {
             loadingOverlay.setVisibility(View.GONE);
             errorOverlay.setVisibility(View.GONE);
-            placeholderOverlay.setVisibility(View.GONE);
             resetAutoHideTimer();
         });
     }
@@ -420,31 +419,11 @@ public class MainActivity extends AppCompatActivity implements
                 return true;
 
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                if (rvChannels.hasFocus()) {
-                    togglePanels(false);
-                    return true;
-                } else if (rvCategories.hasFocus()) {
-                    if (rvChannels.getChildCount() > 0) {
-                        View firstChild = rvChannels.getChildAt(0);
-                        if (firstChild != null) {
-                            firstChild.requestFocus();
-                            return true;
-                        }
-                    }
-                }
+                // No more side-by-side focus change needed, drill-down handles it
                 break;
 
             case KeyEvent.KEYCODE_DPAD_LEFT:
-                if (rvChannels.hasFocus()) {
-                    int selectedCat = categoryAdapter.getSelectedPosition();
-                    RecyclerView.ViewHolder holder = rvCategories.findViewHolderForAdapterPosition(selectedCat);
-                    if (holder != null && holder.itemView != null) {
-                        holder.itemView.requestFocus();
-                    } else {
-                        rvCategories.requestFocus();
-                    }
-                    return true;
-                }
+                // If on channels, back button logic covers returning to categories.
                 break;
 
             case KeyEvent.KEYCODE_MENU:
@@ -487,12 +466,26 @@ public class MainActivity extends AppCompatActivity implements
             return;
         }
 
-        // 3. If side panels (categories/channels) are visible -> handle or hide them (no popup)
+        // 3. If side panels (categories/channels) are visible -> drill-up or hide
         if (isPanelVisible) {
-            if (rvChannels.hasFocus()) {
-                rvCategories.requestFocus();
+            View channelPanel = findViewById(R.id.channel_panel);
+            View categoryPanel = findViewById(R.id.category_panel);
+            
+            if (channelPanel.getVisibility() == View.VISIBLE) {
+                // Drill-up: hide channels, show categories
+                channelPanel.setVisibility(View.GONE);
+                categoryPanel.setVisibility(View.VISIBLE);
+                
+                int selectedCat = categoryAdapter.getSelectedPosition();
+                RecyclerView.ViewHolder holder = rvCategories.findViewHolderForAdapterPosition(selectedCat);
+                if (holder != null && holder.itemView != null) {
+                    holder.itemView.requestFocus();
+                } else {
+                    rvCategories.requestFocus();
+                }
             } else {
-                togglePanels(false); // Hide panels and go to fullscreen player
+                // Hide panels and go to fullscreen player
+                togglePanels(false);
             }
             return;
         }
@@ -549,7 +542,16 @@ public class MainActivity extends AppCompatActivity implements
             if (controlsHud != null) {
                 controlsHud.setVisibility(View.GONE);
             }
-            rvChannels.requestFocus();
+            
+            // Initial state for drill-down: Category is visible, Channels hidden
+            findViewById(R.id.category_panel).setVisibility(View.VISIBLE);
+            findViewById(R.id.channel_panel).setVisibility(View.GONE);
+            
+            int selectedCat = categoryAdapter.getSelectedPosition();
+            if (selectedCat >= 0) {
+                rvCategories.scrollToPosition(selectedCat);
+            }
+            rvCategories.requestFocus();
         } else {
             cancelAutoHideTimer();
             playerView.requestFocus();
@@ -631,7 +633,6 @@ public class MainActivity extends AppCompatActivity implements
             resetAutoHideTimer();
         };
 
-        btnPlayPause.setOnFocusChangeListener(focusListener);
         btnQuality.setOnFocusChangeListener(focusListener);
         btnAspect.setOnFocusChangeListener(focusListener);
         btnMenu.setOnFocusChangeListener(focusListener);
@@ -645,22 +646,10 @@ public class MainActivity extends AppCompatActivity implements
             bioScrollView.setOnFocusChangeListener((v, hasFocus) -> resetAutoHideTimer());
         }
 
-        btnPlayPause.setOnClickListener(v -> {
-            if (playerManager.isPlaying()) {
-                playerManager.pause();
-                btnPlayPause.setText("▶ PLAY");
-            } else {
-                playerManager.resume();
-                btnPlayPause.setText("⏸ PAUSE");
-            }
-            resetAutoHideTimer();
-        });
-
         btnQuality.setOnClickListener(v -> {
             showQualitySelectionDialog();
             resetAutoHideTimer();
         });
-
         btnAspect.setOnClickListener(v -> {
             String modeName = playerManager.toggleResizeMode();
             btnAspect.setText("📺 ASPECT (" + modeName + ")");
@@ -733,7 +722,6 @@ public class MainActivity extends AppCompatActivity implements
         if (controlsHud == null) return;
         controlsHud.setVisibility(View.VISIBLE);
 
-        btnPlayPause.setText(playerManager.isPlaying() ? "⏸ PAUSE" : "▶ PLAY");
         btnAspect.setText("📺 ASPECT (" + playerManager.getResizeModeName() + ")");
 
         List<PlayerManager.TrackInfo> qualities = playerManager.getVideoQualities();
@@ -746,7 +734,7 @@ public class MainActivity extends AppCompatActivity implements
         }
         btnQuality.setText("⚙ QUALITY (" + activeQuality + ")");
 
-        btnPlayPause.requestFocus();
+        btnMenu.requestFocus();
         resetAutoHideTimer();
     }
 
